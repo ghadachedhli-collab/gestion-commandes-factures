@@ -1,10 +1,18 @@
 ﻿public class Client
 {
-    public int IdClient { get; }
+    public int IdClient { get; private set; }
     public string Nom { get; private set; }
     public string Email { get; private set; }
     public string Telephone { get; private set; }
     public string Adresse { get; private set; }
+
+    private Client()
+    {
+        Nom = string.Empty;
+        Email = string.Empty;
+        Telephone = string.Empty;
+        Adresse = string.Empty;
+    }
 
     public Client(int idClient, string nom, string email, string telephone, string adresse)
     {

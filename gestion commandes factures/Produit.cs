@@ -1,9 +1,14 @@
 ﻿public class Produit
 {
-    public int IdProduit { get; }
+    public int IdProduit { get; private set; }
     public string Designation { get; private set; }
     public decimal PrixUnitaire { get; private set; }
     public int Stock { get; private set; }
+
+    private Produit()
+    {
+        Designation = string.Empty;
+    }
 
     public Produit(int idProduit, string designation, decimal prixUnitaire, int stock)
     {

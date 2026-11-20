@@ -1,4 +1,5 @@
-﻿public class LigneDevis
+﻿
+public class LigneDevis
 {
     public Produit Produit { get; }
     public int Quantite { get; }
