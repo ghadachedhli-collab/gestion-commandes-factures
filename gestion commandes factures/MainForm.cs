@@ -1,13 +1,14 @@
 using System.Globalization;
 using Microsoft.EntityFrameworkCore;
 
-public sealed class MainForm : Form
+public sealed partial class MainForm : Form
 {
     private readonly DataGridView _clientsGrid = new();
     private readonly TextBox _clientNom = new();
     private readonly TextBox _clientEmail = new();
     private readonly TextBox _clientTelephone = new();
     private readonly TextBox _clientAdresse = new();
+    private readonly TextBox _clientRecherche = new();
 
     private readonly DataGridView _produitsGrid = new();
     private readonly TextBox _produitDesignation = new();
@@ -28,12 +29,14 @@ public sealed class MainForm : Form
         var tabs = new TabControl { Dock = DockStyle.Fill };
         tabs.TabPages.Add(CreerOngletClients());
         tabs.TabPages.Add(CreerOngletProduits());
+        AjouterOngletsMetier(tabs);
         Controls.Add(tabs);
 
         Load += (_, _) =>
         {
             ChargerClients();
             ChargerProduits();
+            ChargerDonneesMetier();
         };
     }
 
@@ -41,11 +44,31 @@ public sealed class MainForm : Form
     {
         var page = new TabPage("Clients");
         var layout = CreerLayoutPrincipal();
+        var pageLayout = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            RowCount = 2,
+            ColumnCount = 1,
+            Padding = new Padding(12),
+            RowStyles =
+            {
+                new RowStyle(SizeType.Absolute, 42),
+                new RowStyle(SizeType.Percent, 100)
+            }
+        };
+        var recherche = new FlowLayoutPanel { Dock = DockStyle.Fill, AutoSize = true };
+        recherche.Controls.Add(new Label { Text = "Rechercher par nom :", AutoSize = true, Margin = new Padding(3, 8, 8, 3) });
+        _clientRecherche.Width = 300;
+        _clientRecherche.PlaceholderText = "Saisissez le nom du client";
+        _clientRecherche.TextChanged += (_, _) => ChargerClients(_clientRecherche.Text);
+        recherche.Controls.Add(_clientRecherche);
 
         ConfigurerClientsGrid();
         layout.Controls.Add(_clientsGrid, 0, 0);
         layout.Controls.Add(CreerFormulaireClient(), 0, 1);
-        page.Controls.Add(layout);
+        pageLayout.Controls.Add(recherche, 0, 0);
+        pageLayout.Controls.Add(layout, 0, 1);
+        page.Controls.Add(pageLayout);
         _clientsGrid.SelectionChanged += (_, _) => RemplirClientSelectionne();
         return page;
     }
@@ -188,10 +211,13 @@ public sealed class MainForm : Form
         return panel;
     }
 
-    private void ChargerClients()
+    private void ChargerClients(string? recherche = null)
     {
         using var context = new AppDbContext();
-        _clientsGrid.DataSource = context.Clients.AsNoTracking().OrderBy(c => c.Nom).ToList();
+        var requete = context.Clients.AsNoTracking();
+        if (!string.IsNullOrWhiteSpace(recherche))
+            requete = requete.Where(c => c.Nom.Contains(recherche.Trim()));
+        _clientsGrid.DataSource = requete.OrderBy(c => c.Nom).ToList();
     }
 
     private void ChargerProduits()
