@@ -18,6 +18,20 @@
         Stock = stock;
     }
 
+    public void ModifierInfos(string designation, decimal prixUnitaire, int stock)
+    {
+        if (string.IsNullOrWhiteSpace(designation))
+            throw new ArgumentException("La désignation est obligatoire.");
+        if (prixUnitaire < 0)
+            throw new ArgumentException("Le prix doit être positif.");
+        if (stock < 0)
+            throw new ArgumentException("Le stock doit être positif.");
+
+        Designation = designation.Trim();
+        PrixUnitaire = prixUnitaire;
+        Stock = stock;
+    }
+
     public void ModifierPrix(decimal nouveauPrix)
     {
         if (nouveauPrix < 0)
