@@ -9,6 +9,43 @@ public sealed partial class MainForm
     private int _prochaineCommandeId = 1;
     private int _prochaineFactureId = 1;
 
+    private void InitialiserExemplesBase()
+    {
+        using var context = new AppDbContext();
+
+        var clients = new[]
+        {
+            new Client(0, "Ali Ben Salah", "ali.bensalah@example.com", "20123456", "Tunis"),
+            new Client(0, "Sarra Trabelsi", "sarra.trabelsi@example.com", "22123456", "Sousse"),
+            new Client(0, "Mohamed Jaziri", "mohamed.jaziri@example.com", "23123456", "Bizerte"),
+            new Client(0, "Ines Gharbi", "ines.gharbi@example.com", "25123456", "Nabeul"),
+            new Client(0, "Youssef Ben Amor", "youssef.benamor@example.com", "26123456", "Sfax")
+        };
+
+        foreach (var client in clients)
+        {
+            if (!context.Clients.Any(c => c.Email == client.Email))
+                context.Clients.Add(client);
+        }
+
+        var produits = new[]
+        {
+            new Produit(0, "Ordinateur portable", 2500m, 20),
+            new Produit(0, "Ecran 24 pouces", 650m, 30),
+            new Produit(0, "Clavier sans fil", 120m, 50),
+            new Produit(0, "Souris ergonomique", 85m, 60),
+            new Produit(0, "Imprimante multifonction", 480m, 15)
+        };
+
+        foreach (var produit in produits)
+        {
+            if (!context.Produits.Any(p => p.Designation == produit.Designation))
+                context.Produits.Add(produit);
+        }
+
+        context.SaveChanges();
+    }
+
     private readonly DataGridView _devisGrid = new();
     private readonly ComboBox _devisClient = new();
     private readonly ComboBox _devisProduit = new();
@@ -158,13 +195,42 @@ public sealed partial class MainForm
     private void ChargerDonneesMetier()
     {
         using var context = new AppDbContext();
-        _devisClient.DataSource = context.Clients.AsNoTracking().OrderBy(c => c.Nom).ToList();
+        var clients = context.Clients.AsNoTracking().OrderBy(c => c.Nom).ToList();
+        var produits = context.Produits.AsNoTracking().OrderBy(p => p.Designation).ToList();
+
+        _devisClient.DataSource = clients;
         _devisClient.DisplayMember = nameof(Client.Nom);
         _devisClient.ValueMember = nameof(Client.IdClient);
-        _devisProduit.DataSource = context.Produits.AsNoTracking().OrderBy(p => p.Designation).ToList();
+        _devisProduit.DataSource = produits;
         _devisProduit.DisplayMember = nameof(Produit.Designation);
         _devisProduit.ValueMember = nameof(Produit.IdProduit);
+
+        InitialiserExemplesMetier(clients, produits);
         RafraichirGrillesMetier();
+    }
+
+    private void InitialiserExemplesMetier(IReadOnlyList<Client> clients, IReadOnlyList<Produit> produits)
+    {
+        if (_devis.Count > 0 || clients.Count < 5 || produits.Count < 5)
+            return;
+
+        for (var index = 0; index < 5; index++)
+        {
+            var devis = new Devis(_prochainDevisId++, clients[index], DateTime.Today.AddDays(15));
+            devis.AjouterLigne(produits[index], 1);
+            devis.AjouterLigne(produits[(index + 1) % 5], 2);
+            devis.Accepter();
+            _devis.Add(devis);
+
+            var commande = devis.ConvertirEnCommande(_prochaineCommandeId++);
+            commande.Valider();
+            _commandes.Add(commande);
+
+            var facture = commande.GenererFacture(_prochaineFactureId++, DateTime.Today.AddDays(-index - 1));
+            facture.EnregistrerPaiement(facture.CalculerTTC() / 2, (ModePaiement)(index % 4));
+            facture.Relancer();
+            _factures.Add(facture);
+        }
     }
 
     private void CreerDevis(object? sender, EventArgs e)
@@ -303,8 +369,9 @@ public sealed partial class MainForm
 
     private static void CacherColonne(DataGridView grid, string nom)
     {
-        if (grid.Columns.Contains(nom))
-            grid.Columns[nom].Visible = false;
+        var colonne = grid.Columns[nom];
+        if (colonne is not null)
+            colonne.Visible = false;
     }
 
     private static T? ElementSelectionne<T>(DataGridView grid, List<T> elements) where T : class

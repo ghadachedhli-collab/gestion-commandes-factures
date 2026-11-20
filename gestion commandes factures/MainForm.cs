@@ -34,6 +34,7 @@ public sealed partial class MainForm : Form
 
         Load += (_, _) =>
         {
+            InitialiserExemplesBase();
             ChargerClients();
             ChargerProduits();
             ChargerDonneesMetier();
